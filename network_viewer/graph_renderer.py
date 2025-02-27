@@ -5,8 +5,8 @@ class GraphRenderer:
     def __init__(self, map_widget):
         self.map_widget = map_widget
 
-    def create_circle_icon(self, color="red", size=10):
-        """Cria um ícone circular para o marcador."""
+    def create_circle_icon(self, color="#800000", size=5):
+        """Cria um ícone circular para o marcador com cor vinho e tamanho reduzido."""
         image = Image.new("RGBA", (size*2, size*2), (0, 0, 0, 0))
         draw = ImageDraw.Draw(image)
         draw.ellipse((0, 0, size*2, size*2), fill=color)
@@ -15,7 +15,7 @@ class GraphRenderer:
         return ImageTk.PhotoImage(image)
 
     def plot_nodes(self, graph):
-        """Adiciona os nós ao mapa com círculos vermelhos preenchidos."""
+        """Adiciona os nós ao mapa com círculos vinho preenchidos."""
         self.node_positions = {}  # Armazena coordenadas dos nós
         for node, data in graph.nodes(data=True):
             label = data.get('label', 'Desconhecido')
@@ -23,8 +23,8 @@ class GraphRenderer:
             latitude = data.get('Latitude', None)
 
             if longitude and latitude:
-                # Cria o ícone de círculo vermelho
-                circle_icon = self.create_circle_icon(color="red", size=10)
+                # Cria o ícone de círculo vinho
+                circle_icon = self.create_circle_icon(color="#800000", size=5)
                 # Define o marcador com o ícone de círculo
                 self.map_widget.set_marker(latitude, longitude, text=label, icon=circle_icon)
                 self.node_positions[node] = (latitude, longitude)  # Salva a posição do nó
