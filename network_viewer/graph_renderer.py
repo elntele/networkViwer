@@ -1,23 +1,32 @@
-# network_service.py
-import time
-import requests
+from tkintermapview import TkinterMapView
+from PIL import Image, ImageDraw, ImageTk
 
 class GraphRenderer:
     def __init__(self, map_widget):
         self.map_widget = map_widget
 
+    def create_circle_icon(self, color="red", size=10):
+        """Cria um ícone circular para o marcador."""
+        image = Image.new("RGBA", (size*2, size*2), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(image)
+        draw.ellipse((0, 0, size*2, size*2), fill=color)
+
+        # Convertendo a imagem PIL para PhotoImage compatível com Tkinter
+        return ImageTk.PhotoImage(image)
+
     def plot_nodes(self, graph):
         """Adiciona os nós ao mapa com círculos vermelhos preenchidos."""
         self.node_positions = {}  # Armazena coordenadas dos nós
-
         for node, data in graph.nodes(data=True):
             label = data.get('label', 'Desconhecido')
             longitude = data.get('Longitude', None)
             latitude = data.get('Latitude', None)
 
             if longitude and latitude:
-                # Usando o método correto para criar um marcador (sem parâmetros de cor diretamente)
-                self.map_widget.set_marker(latitude, longitude, text=label)
+                # Cria o ícone de círculo vermelho
+                circle_icon = self.create_circle_icon(color="red", size=10)
+                # Define o marcador com o ícone de círculo
+                self.map_widget.set_marker(latitude, longitude, text=label, icon=circle_icon)
                 self.node_positions[node] = (latitude, longitude)  # Salva a posição do nó
 
     def plot_edges(self, graph):
@@ -28,4 +37,4 @@ class GraphRenderer:
                 lat2, lon2 = self.node_positions[node2]
 
                 # Desenha uma linha vermelha conectando os nós
-                self.map_widget.set_path([(lat1, lon1), (lat2, lon2)], color="red", width=2)
+                self.map_widget.set_path([(lat1, lon1), (lat2, lon2)], color="black", width=2)
