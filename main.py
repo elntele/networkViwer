@@ -35,6 +35,7 @@ class GraphMapApp:
 
                 # Exibir as informações dos nós e arestas
                 print("\nNós do grafo:")
+                node_positions = {}
                 for node, data in G.nodes(data=True):
                     label = data.get('label', 'Desconhecido')
                     longitude = data.get('Longitude', None)
@@ -45,10 +46,10 @@ class GraphMapApp:
                     if longitude and latitude:
                         # Adicionar marcador no mapa
                         self.add_marker_to_map(latitude, longitude, label)
+                        node_positions[node] = (latitude, longitude)
 
                 print("\nArestas do grafo:")
-                for edge in G.edges():
-                    print(edge)
+                self.draw_edges_on_map(G, node_positions)
 
             except Exception as e:
                 print(f"Erro ao ler o arquivo GML: {e}")
@@ -77,6 +78,13 @@ class GraphMapApp:
                 print(f"Erro ao buscar localização para {label}: Nenhum dado encontrado")
         except requests.exceptions.RequestException as e:
             print(f"Erro ao buscar localização para {label}: {e}")
+
+    def draw_edges_on_map(self, G, node_positions):
+        for node1, node2 in G.edges():
+            if node1 in node_positions and node2 in node_positions:
+                lat1, lon1 = node_positions[node1]
+                lat2, lon2 = node_positions[node2]
+                self.map_widget.set_path([(lat1, lon1), (lat2, lon2)])
 
 if __name__ == "__main__":
     root = tk.Tk()
