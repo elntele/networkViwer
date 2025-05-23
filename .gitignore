@@ -1,0 +1,18 @@
+# Ignore arquivos de ambiente
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# Ignore arquivos temporários e do PyCharm
+.idea/
+*.log
+
+# Ignore arquivos gerados
+map_image.pdf
+
+# (opcional) Arquivos de exportação
+*.html
+*.pdf
+*.png
+*.csv
