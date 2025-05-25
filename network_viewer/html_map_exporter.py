@@ -5,38 +5,34 @@ from jinja2 import Template
 load_dotenv()
 API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 
-
 def export_graph_to_google_maps(graph, output_path="grafo_google_maps.html"):
     if not API_KEY:
         print("❌ API Key do Google Maps não encontrada no .env.")
         return
 
-    def get_attr(v, key, default=None):
-        return v[key] if key in v.attributes() else default
-
     node_data = []
     node_positions = {}
+
     for v in graph.vs:
-        lat = get_attr(v, "Latitude")
-        lon = get_attr(v, "Longitude")
-        label = get_attr(v, "label", f"Node {v.index}")
+        lat = v["Latitude"] if "Latitude" in v.attributes() else None
+        lon = v["Longitude"] if "Longitude" in v.attributes() else None
+        label = v["label"] if "label" in v.attributes() else "Desconhecido"
+        numnode = v["numnode"] if "numnode" in v.attributes() else "?"
+
         if lat is not None and lon is not None:
             node_positions[v.index] = {"lat": lat, "lon": lon}
-            node_data.append({"lat": lat, "lon": lon, "label": label})
-
-    if not node_data:
-        print("❌ Nenhum nó com coordenadas encontrado.")
-        return
+            node_data.append({
+                "lat": lat,
+                "lon": lon,
+                "label": label,
+                "numnode": numnode
+            })
 
     edge_data = []
     for e in graph.es:
-        src = e.source
-        tgt = e.target
-        if src in node_positions and tgt in node_positions:
-            edge_data.append([
-                node_positions[src],
-                node_positions[tgt]
-            ])
+        s, t = e.source, e.target
+        if s in node_positions and t in node_positions:
+            edge_data.append([node_positions[s], node_positions[t]])
 
     html_template = Template("""
     <!DOCTYPE html>
@@ -63,7 +59,13 @@ def export_graph_to_google_maps(graph, output_path="grafo_google_maps.html"):
                     new google.maps.Marker({
                         position: position,
                         map,
-                        title: node.label
+                        title: node.label,
+                        label: {
+                            text: node.numnode.toString(),
+                            color: "white",
+                            fontSize: "12px",
+                            fontWeight: "bold"
+                        }
                     });
                 }
 
