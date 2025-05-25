@@ -5,19 +5,43 @@ import chardet
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
+def buscar_valores_pb_capex(csv_var_path, line_number):
+    try:
+        base, nome_arquivo = os.path.split(csv_var_path)
+        nome_fun = nome_arquivo.replace("VAR", "FUN")
+        caminho_fun = os.path.join(base, nome_fun)
+
+        if not os.path.exists(caminho_fun):
+            return "fun value não encontrado", "fun value não encontrado"
+
+        with open(caminho_fun, newline='', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            linhas = list(reader)
+
+        if line_number > len(linhas):
+            return "fun value não encontrado", "fun value não encontrado"
+
+        linha = linhas[line_number - 1]
+        pb = linha[0] if len(linha) > 0 else "fun value não encontrado"
+        capex = linha[1] if len(linha) > 1 else "fun value não encontrado"
+        return pb, capex
+
+    except Exception:
+        return "fun value não encontrado", "fun value não encontrado"
+
 def process_graph_with_igraph(app):
     def run_processing():
         try:
             line_number = int(entry_line.get())
             num_nodes = int(entry_nodes.get())
+            csv_path = csv_path_var.get()
+            gml_path = gml_path_var.get()
 
-            if not csv_path_var.get() or not gml_path_var.get():
+            if not csv_path or not gml_path:
                 messagebox.showerror("Erro", "Por favor, selecione os dois arquivos.")
                 return
 
-            base_path = os.path.dirname(csv_path_var.get())
-            csv_path = csv_path_var.get()
-            gml_path = gml_path_var.get()
+            base_path = os.path.dirname(csv_path)
             output_path = os.path.join(base_path, f"topologia_linha_{line_number}.gml")
 
             with open(csv_path, newline='', encoding='utf-8') as csvfile:
@@ -39,7 +63,6 @@ def process_graph_with_igraph(app):
             matrix_genes = genes[:expected_links]
             roadm_genes = genes[-(num_nodes + 1):-1]
 
-            # >>>>> DETECTAR E CONVERTER CODIFICAÇÃO DO GML <<<<<
             with open(gml_path, 'rb') as f:
                 raw_data = f.read()
                 detected = chardet.detect(raw_data)
@@ -49,7 +72,6 @@ def process_graph_with_igraph(app):
             with open(temp_utf8_path, 'w', encoding='utf-8') as f:
                 f.write(decoded_gml)
 
-            # >>>>> LER GML CONVERTIDO COM IGRAPH <<<<<
             g = ig.Graph.Read_GML(temp_utf8_path)
 
             if len(g.vs) != num_nodes:
@@ -78,6 +100,12 @@ def process_graph_with_igraph(app):
             new_g.add_edges(edge_list)
             new_g.es["LinkLabel"] = edge_labels
 
+            # Adiciona PB e Capex
+            pb, capex = buscar_valores_pb_capex(csv_path, line_number)
+            new_g["PB"] = pb
+            new_g["Capex"] = capex
+            new_g["Country"] = "Brazil"
+
             new_g.write_gml(output_path)
             messagebox.showinfo("Sucesso", f"Arquivo salvo: {output_path}")
             dialog.destroy()
@@ -86,41 +114,46 @@ def process_graph_with_igraph(app):
             messagebox.showerror("Erro", f"Erro ao processar: {e}")
 
     def select_csv():
-        path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.CSV")], title="Selecione o arquivo do cromossomo (.CSV)")
+        path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.CSV")])
         if path:
             csv_path_var.set(path)
 
     def select_gml():
-        path = filedialog.askopenfilename(filetypes=[("GML Files", "*.gml")], title="Selecione o arquivo dos nós (.GML)")
+        path = filedialog.askopenfilename(filetypes=[("GML Files", "*.gml")])
         if path:
             gml_path_var.set(path)
 
-    # >>>>> MODAL <<<<<
+    # Modal UI
     dialog = tk.Toplevel(app.root)
     dialog.title("Importar Cromossomo com iGraph")
-    dialog.geometry("440x300")
+    dialog.geometry("600x400")
 
     csv_path_var = tk.StringVar()
     gml_path_var = tk.StringVar()
 
-    label_line = tk.Label(dialog, text="Informe a linha da topologia:")
-    label_line.pack(pady=(10, 2))
+    tk.Label(dialog, text="Informe a linha da topologia:").pack(pady=(10, 2))
     entry_line = tk.Entry(dialog)
     entry_line.pack(pady=2)
 
-    label_nodes = tk.Label(dialog, text="Informe o número de nós do grafo:")
-    label_nodes.pack(pady=(10, 2))
+    tk.Label(dialog, text="Informe o número de nós do grafo:").pack(pady=(10, 2))
     entry_nodes = tk.Entry(dialog)
     entry_nodes.pack(pady=2)
 
-    button_csv = tk.Button(dialog, text="Selecionar arquivo CSV (Cromossomo)", command=select_csv)
-    button_csv.pack(pady=(10, 2))
+    # Campo CSV
+    tk.Label(dialog, text="Arquivo CSV (Cromossomo):").pack(pady=(10, 0))
+    frame_csv = tk.Frame(dialog)
+    frame_csv.pack(pady=2)
+    tk.Entry(frame_csv, textvariable=csv_path_var, width=50).pack(side="left", padx=(0, 5))
+    tk.Button(frame_csv, text="Procurar", command=select_csv).pack(side="left")
 
-    button_gml = tk.Button(dialog, text="Selecionar arquivo GML (Nós)", command=select_gml)
-    button_gml.pack(pady=2)
+    # Campo GML
+    tk.Label(dialog, text="Arquivo GML (Nós):").pack(pady=(10, 0))
+    frame_gml = tk.Frame(dialog)
+    frame_gml.pack(pady=2)
+    tk.Entry(frame_gml, textvariable=gml_path_var, width=50).pack(side="left", padx=(0, 5))
+    tk.Button(frame_gml, text="Procurar", command=select_gml).pack(side="left")
 
-    button_process = tk.Button(dialog, text="Gerar topologia", command=run_processing)
-    button_process.pack(pady=15)
+    tk.Button(dialog, text="Gerar topologia", command=run_processing).pack(pady=15)
 
     dialog.transient(app.root)
     dialog.grab_set()
