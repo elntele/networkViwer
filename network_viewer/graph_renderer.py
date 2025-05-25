@@ -1,40 +1,65 @@
 from tkintermapview import TkinterMapView
-from PIL import Image, ImageDraw, ImageTk
+from PIL import Image, ImageDraw, ImageTk, ImageFont
+
 
 class GraphRenderer:
     def __init__(self, map_widget):
         self.map_widget = map_widget
 
-    def create_circle_icon(self, color="#800000", size=5):
-        """Cria um ícone circular para o marcador com cor vinho e tamanho reduzido."""
-        image = Image.new("RGBA", (size*2, size*2), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(image)
-        draw.ellipse((0, 0, size*2, size*2), fill=color)
+    def get_attr(self, vertex, key, default=None):
+        """Lê um atributo de um vértice com segurança."""
+        return vertex[key] if key in vertex.attributes() else default
 
-        # Convertendo a imagem PIL para PhotoImage compatível com Tkinter
+    def create_circle_icon(self, roadm="?", num_node="?", color="#800000", size=28):
+        """Cria um ícone com ROADM central e num_node acima do círculo."""
+        image = Image.new("RGBA", (size, size + 12), (0, 0, 0, 0))  # espaço extra acima
+        draw = ImageDraw.Draw(image)
+        font = ImageFont.load_default()
+
+        # Círculo
+        circle_bounds = (2, 12, size - 2, size + 12 - 2)
+        draw.ellipse(circle_bounds, outline=color, width=2)
+
+        # Texto ROADM dentro do círculo
+        roadm_text = str(roadm)
+        bbox = draw.textbbox((0, 0), roadm_text, font=font)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+        center_x = (size - text_w) / 2
+        center_y = 12 + ((size - 12 - text_h) / 2)
+        draw.text((center_x, center_y), roadm_text, font=font, fill=color)
+
+        # Texto num_node acima do círculo
+        num_text = str(num_node)
+        bbox2 = draw.textbbox((0, 0), num_text, font=font)
+        num_w = bbox2[2] - bbox2[0]
+        num_x = (size - num_w) / 2
+        draw.text((num_x, 0), num_text, font=font, fill=color)
+
         return ImageTk.PhotoImage(image)
 
     def plot_nodes(self, graph):
-        """Adiciona os nós ao mapa com círculos vinho preenchidos."""
-        self.node_positions = {}  # Armazena coordenadas dos nós
-        for node, data in graph.nodes(data=True):
-            label = data.get('label', 'Desconhecido')
-            longitude = data.get('Longitude', None)
-            latitude = data.get('Latitude', None)
+        """Plota os nós do grafo no mapa usando igraph."""
+        self.node_positions = {}
+        for v in graph.vs:
+            label = self.get_attr(v, 'label', 'ZZZ')
+            latitude = self.get_attr(v, 'Latitude')
+            longitude = self.get_attr(v, 'Longitude')
+            num_node = self.get_attr(v, 'num_node', '?')
+            roadm = self.get_attr(v, 'ROADM', '?')
 
-            if longitude and latitude:
-                # Cria o ícone de círculo vinho
-                circle_icon = self.create_circle_icon(color="#800000", size=5)
-                # Define o marcador com o ícone de círculo
-                self.map_widget.set_marker(latitude, longitude, text=label, icon=circle_icon)
-                self.node_positions[node] = (latitude, longitude)  # Salva a posição do nó
+            if latitude is not None and longitude is not None:
+                icon = self.create_circle_icon(roadm=roadm, num_node=num_node, color="#800000", size=28)
+                self.map_widget.set_marker(latitude, longitude, text=label, icon=icon)
+                self.node_positions[v.index] = (latitude, longitude)
 
     def plot_edges(self, graph):
-        """Desenha as arestas no mapa com a cor vermelha."""
-        for node1, node2 in graph.edges():
-            if node1 in self.node_positions and node2 in self.node_positions:
-                lat1, lon1 = self.node_positions[node1]
-                lat2, lon2 = self.node_positions[node2]
+        """Desenha arestas com base no grafo igraph."""
+        for e in graph.es:
+            src = e.source
+            tgt = e.target
 
-                # Desenha uma linha vermelha conectando os nós
+            if src in self.node_positions and tgt in self.node_positions:
+                lat1, lon1 = self.node_positions[src]
+                lat2, lon2 = self.node_positions[tgt]
                 self.map_widget.set_path([(lat1, lon1), (lat2, lon2)], color="black", width=2)

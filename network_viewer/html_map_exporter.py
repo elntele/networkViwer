@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from jinja2 import Template
 
 load_dotenv()
-
 API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 
 
@@ -12,14 +11,17 @@ def export_graph_to_google_maps(graph, output_path="grafo_google_maps.html"):
         print("❌ API Key do Google Maps não encontrada no .env.")
         return
 
+    def get_attr(v, key, default=None):
+        return v[key] if key in v.attributes() else default
+
     node_data = []
     node_positions = {}
-    for node, data in graph.nodes(data=True):
-        lat = data.get("Latitude")
-        lon = data.get("Longitude")
-        label = data.get("label", str(node))
+    for v in graph.vs:
+        lat = get_attr(v, "Latitude")
+        lon = get_attr(v, "Longitude")
+        label = get_attr(v, "label", f"Node {v.index}")
         if lat is not None and lon is not None:
-            node_positions[node] = {"lat": lat, "lon": lon}
+            node_positions[v.index] = {"lat": lat, "lon": lon}
             node_data.append({"lat": lat, "lon": lon, "label": label})
 
     if not node_data:
@@ -27,11 +29,13 @@ def export_graph_to_google_maps(graph, output_path="grafo_google_maps.html"):
         return
 
     edge_data = []
-    for source, target in graph.edges():
-        if source in node_positions and target in node_positions:
+    for e in graph.es:
+        src = e.source
+        tgt = e.target
+        if src in node_positions and tgt in node_positions:
             edge_data.append([
-                node_positions[source],
-                node_positions[target]
+                node_positions[src],
+                node_positions[tgt]
             ])
 
     html_template = Template("""
@@ -79,7 +83,6 @@ def export_graph_to_google_maps(graph, output_path="grafo_google_maps.html"):
                     });
                 }
 
-                // Aplica o fitBounds com margem interna (padding visual)
                 google.maps.event.addListenerOnce(map, 'idle', function () {
                     map.fitBounds(bounds, {
                         top: 50,
