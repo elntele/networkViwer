@@ -4,17 +4,17 @@ import chardet
 import os
 
 # >>> CONFIGURAÇÃO DE CAMINHOS <<<
-csv_path = r"C:\Users\elnte\Desktop\testes graph\VAR1000.csv"
-gml_path = r"C:\Users\elnte\Desktop\testes graph\selectedCityInPernabucoState.gml"
-output_path = r"C:\Users\elnte\Desktop\testes graph\densidade_redes.csv"
+nodes_gml = os.path.join(os.path.dirname(__file__), "..", "base_graph", "base_graph.gml")
+csv_path = r"C:\Users\elnte\Desktop\result 24.6.25\CN-C+MN-C\VARSandFUNS\execution2\VAR360.csv"
+output_path = r"C:\Users\elnte\Desktop\result 24.6.25\CN-C+MN-C\VARSandFUNS\execution2\densidade_redes.csv"
 
 # >>> LER GML COM CORREÇÃO DE ENCODING <<<
-with open(gml_path, 'rb') as f:
+with open(nodes_gml, 'rb') as f:
     raw = f.read()
     encoding = chardet.detect(raw)['encoding']
     gml_text = raw.decode(encoding)
 
-temp_utf8_gml = gml_path + "_utf8_temp.gml"
+temp_utf8_gml = nodes_gml + "_utf8_temp.gml"
 with open(temp_utf8_gml, 'w', encoding='utf-8') as f:
     f.write(gml_text)
 
